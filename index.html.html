@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Preço Médio">
+<style>:root{color-scheme:light}body{margin:0;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}[hidden]{display:none!important}</style>
+<title>Calculadora de Preço Médio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: uma coluna de painéis empilhados (posição → compras → resultado), larga no desktop em duas colunas */
+:root{
+  --bg:#eef1f4; --surface:#ffffff; --line:#d5dbe2; --ink:#16212e; --muted:#5d6b7a;
+  --accent:#0d6b5f; --accent-soft:#dcefeb; --gain:#11804a; --loss:#c0392b;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10161d; --surface:#18212b; --line:#2b3744; --ink:#e6ecf2; --muted:#93a2b2;
+  --accent:#4cc3ad; --accent-soft:#173a36; --gain:#4fd18b; --loss:#ff7a6b; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10161d; --surface:#18212b; --line:#2b3744; --ink:#e6ecf2; --muted:#93a2b2;
+  --accent:#4cc3ad; --accent-soft:#173a36; --gain:#4fd18b; --loss:#ff7a6b; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.45}
+.wrap{max-width:1040px;margin:0 auto;padding-inline:16px;padding-block:20px 40px;display:grid;gap:16px}
+header h1{margin:0;font-size:1.45rem;font-weight:700;letter-spacing:-.01em;text-wrap:balance}
+header p{margin:4px 0 0;color:var(--muted);font-size:.92rem}
+.grid{display:grid;gap:16px;grid-template-columns:1fr}
+@media (min-width:860px){.grid{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);align-items:start}}
+.col{display:grid;gap:16px;min-width:0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:14px;min-width:0}
+.panel h2{margin:0;font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.fields{display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.fields .full{grid-column:1/-1}
+label{display:grid;gap:4px;font-size:.82rem;color:var(--muted);font-weight:500;min-width:0}
+input{font:inherit;font-family:var(--mono);font-size:1rem;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:10px 11px;width:100%;min-width:0}
+input:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input#ticker{text-transform:uppercase;font-weight:600;letter-spacing:.04em}
+.quote-row{display:flex;gap:8px;align-items:end}
+.quote-row label{flex:1}
+.linkbtn{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;padding:10px 12px;border-radius:7px;border:1px solid var(--accent);color:var(--accent);text-decoration:none;font-weight:600;font-size:.88rem}
+.linkbtn:hover{background:var(--accent-soft)}
+.hint{font-size:.8rem;color:var(--muted);margin:0}
+
+/* compras */
+.buys{display:grid;gap:10px}
+.buy{display:grid;grid-template-columns:28px minmax(0,1fr) minmax(0,1fr) 34px;gap:8px;align-items:end;padding-bottom:10px;border-bottom:1px dashed var(--line)}
+.buy:last-child{border-bottom:0;padding-bottom:0}
+.buy .n{font-family:var(--mono);font-weight:600;color:var(--accent);align-self:center;padding-top:16px;text-align:center}
+.buy .after{grid-column:2/-1;font-family:var(--mono);font-size:.82rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 14px}
+.buy .after b{color:var(--ink);font-weight:600}
+.buy .after .down{color:var(--gain)} .buy .after .up{color:var(--loss)}
+.del{height:42px;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:7px;cursor:pointer;font-size:1.1rem}
+.del:hover{color:var(--loss);border-color:var(--loss)}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+button.btn{font:inherit;font-weight:600;font-size:.9rem;padding:10px 14px;border-radius:7px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+button.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+button.btn:disabled{opacity:.45;cursor:not-allowed}
+
+/* resultado */
+.hero{display:grid;gap:2px}
+.hero .lbl{font-size:.82rem;color:var(--muted)}
+.hero .big{font-family:var(--mono);font-size:2.1rem;font-weight:600;letter-spacing:-.02em;line-height:1.1}
+.hero .delta{font-family:var(--mono);font-size:.88rem}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;border-top:1px solid var(--line)}
+.stat{padding:10px 0;border-bottom:1px solid var(--line);display:grid;gap:2px;min-width:0}
+.stat:nth-child(odd){padding-right:10px}
+.stat:nth-child(even){padding-left:10px;border-left:1px solid var(--line)}
+.stat span{font-size:.78rem;color:var(--muted)}
+.stat b{font-family:var(--mono);font-weight:600;font-size:1rem;overflow-wrap:anywhere}
+.pos{color:var(--gain)} .neg{color:var(--loss)}
+.tabnum,.big,.stat b,input{font-variant-numeric:tabular-nums}
+.meta-out{font-size:.92rem;background:var(--accent-soft);border-radius:7px;padding:10px 12px;margin:0}
+.meta-out b{font-family:var(--mono)}
+footer{color:var(--muted);font-size:.78rem;text-align:center}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Calculadora de Preço Médio</h1>
+    <p>Simule novas compras de ações, FIIs ou ETFs e veja o preço médio recalculado a cada aporte.</p>
+  </header>
+
+  <div class="grid">
+    <div class="col">
+      <section class="panel" aria-labelledby="h-pos">
+        <h2 id="h-pos">Posição atual</h2>
+        <div class="fields">
+          <label class="full">Ticker
+            <input id="ticker" type="text" autocomplete="off" spellcheck="false" maxlength="12" placeholder="PETR4">
+          </label>
+          <label>Preço médio atual (R$)
+            <input id="pm" type="text" inputmode="decimal" placeholder="0,00">
+          </label>
+          <label>Quantidade
+            <input id="qtd" type="text" inputmode="numeric" placeholder="0">
+          </label>
+          <div class="full quote-row">
+            <label>Cotação atual (R$)
+              <input id="cot" type="text" inputmode="decimal" placeholder="0,00">
+            </label>
+            <a id="quoteLink" class="linkbtn" href="https://www.google.com/finance/" target="_blank" rel="noopener">Ver cotação ↗</a>
+          </div>
+          <p class="hint full">A cotação é digitada por você. O botão abre a página do ticker no Google Finance para consultar o preço do momento.</p>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="h-buys">
+        <h2 id="h-buys">Compras simuladas</h2>
+        <div id="buys" class="buys"></div>
+        <div class="actions">
+          <button id="add" class="btn" type="button">+ Adicionar compra</button>
+          <button id="fillQuote" class="btn" type="button">Usar cotação nas compras vazias</button>
+          <button id="clear" class="btn" type="button">Limpar tudo</button>
+        </div>
+      </section>
+    </div>
+
+    <div class="col">
+      <section class="panel" aria-labelledby="h-res">
+        <h2 id="h-res">Resultado <span id="resTicker"></span></h2>
+        <div class="hero">
+          <span class="lbl">Novo preço médio</span>
+          <span id="rPm" class="big">R$ 0,00</span>
+          <span id="rPmDelta" class="delta"></span>
+        </div>
+        <div class="stats">
+          <div class="stat"><span>Quantidade total</span><b id="rQtd">0</b></div>
+          <div class="stat"><span>Total investido</span><b id="rTot">R$ 0,00</b></div>
+          <div class="stat"><span>Aporte simulado</span><b id="rAporte">R$ 0,00</b></div>
+          <div class="stat"><span>Valor a mercado</span><b id="rMkt">—</b></div>
+          <div class="stat"><span>Resultado (R$)</span><b id="rRes">—</b></div>
+          <div class="stat"><span>Resultado (%)</span><b id="rResPct">—</b></div>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="h-meta">
+        <h2 id="h-meta">Meta de preço médio</h2>
+        <p class="hint" style="margin-top:-6px">Quantas cotas comprar a um preço para chegar ao preço médio desejado, a partir da posição atual.</p>
+        <div class="fields">
+          <label>Preço médio desejado (R$)
+            <input id="metaPm" type="text" inputmode="decimal" placeholder="0,00">
+          </label>
+          <label>Preço de compra (R$)
+            <input id="metaPreco" type="text" inputmode="decimal" placeholder="cotação">
+          </label>
+        </div>
+        <p id="metaOut" class="meta-out">Preencha o preço médio desejado.</p>
+      </section>
+    </div>
+  </div>
+  <footer>Os dados ficam salvos só neste navegador. Cálculo sem taxas de corretagem e emolumentos.</footer>
+</div>
+
+<script>
+(function(){
+  const MAX = 10, KEY = 'pm-calc-v1';
+  const $ = id => document.getElementById(id);
+  const brl = v => v.toLocaleString('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:2,maximumFractionDigits:2});
+  const num = (v,d=0) => v.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
+  const pct = v => (v>0?'+':'') + v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) + '%';
+  function parse(s){
+    s = String(s||'').trim().replace(/\s|R\$/g,'');
+    if(!s) return NaN;
+    if(s.includes(',')) s = s.replace(/\./g,'').replace(',','.');
+    const n = parseFloat(s); return isFinite(n) ? n : NaN;
+  }
+
+  // estado inicial com exemplo
+  let state = {ticker:'PETR4', pm:'32,50', qtd:'100', cot:'30,80', metaPm:'31,50', metaPreco:'',
+    buys:[{p:'30,80',q:'50'},{p:'29,90',q:'50'},{p:'',q:''},{p:'',q:''},{p:'',q:''}]};
+  try{ const s = JSON.parse(localStorage.getItem(KEY)); if(s && Array.isArray(s.buys)) state = s; }catch(e){}
+  const save = () => { try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} };
+
+  const fields = ['ticker','pm','qtd','cot','metaPm','metaPreco'];
+  fields.forEach(f => { $(f).value = state[f] || ''; $(f).addEventListener('input', e => {
+    state[f] = f==='ticker' ? e.target.value.toUpperCase() : e.target.value; calc(); save(); }); });
+
+  function renderBuys(){
+    const box = $('buys'); box.innerHTML = '';
+    state.buys.forEach((b,i) => {
+      const row = document.createElement('div'); row.className = 'buy';
+      row.innerHTML =
+        `<span class="n">${i+1}</span>
+         <label>Novo preço (R$)<input id="bp${i}" type="text" inputmode="decimal" placeholder="0,00"></label>
+         <label>Nova quantidade<input id="bq${i}" type="text" inputmode="numeric" placeholder="0"></label>
+         <button class="del" type="button" aria-label="Remover compra ${i+1}">×</button>
+         <div class="after" id="ba${i}"></div>`;
+      box.appendChild(row);
+      const ip = row.querySelector('#bp'+i), iq = row.querySelector('#bq'+i);
+      ip.value = b.p; iq.value = b.q;
+      ip.addEventListener('input', e => { state.buys[i].p = e.target.value; calc(); save(); });
+      iq.addEventListener('input', e => { state.buys[i].q = e.target.value; calc(); save(); });
+      row.querySelector('.del').addEventListener('click', () => {
+        state.buys.splice(i,1); if(!state.buys.length) state.buys.push({p:'',q:''});
+        renderBuys(); calc(); save(); });
+    });
+    $('add').disabled = state.buys.length >= MAX;
+  }
+
+  function calc(){
+    const t = (state.ticker||'').trim().toUpperCase();
+    $('resTicker').textContent = t ? '· ' + t : '';
+    $('quoteLink').href = t ? 'https://www.google.com/finance/quote/' + encodeURIComponent(t) + ':BVMF' : 'https://www.google.com/finance/';
+    const pm0 = parse(state.pm) || 0, q0 = parse(state.qtd) || 0, cot = parse(state.cot);
+    let tot = pm0*q0, q = q0, aporte = 0, prevPm = pm0;
+
+    state.buys.forEach((b,i) => {
+      const p = parse(b.p), n = parse(b.q), el = $('ba'+i);
+      if(!(p>0 && n>0)){ el.textContent = ''; return; }
+      tot += p*n; q += n; aporte += p*n;
+      const pmNow = tot/q, diff = pmNow - prevPm;
+      const cls = diff<0 ? 'down' : diff>0 ? 'up' : '';
+      el.innerHTML = `<span>PM: <b>${brl(pmNow)}</b></span>
+        <span class="${cls}">${prevPm>0 ? (diff<=0?'▼ ':'▲ ') + brl(Math.abs(diff)) : ''}</span>
+        <span>Qtd: <b>${num(q)}</b></span><span>Aporte: <b>${brl(p*n)}</b></span>`;
+      prevPm = pmNow;
+    });
+
+    const pmF = q>0 ? tot/q : 0;
+    $('rPm').textContent = brl(pmF);
+    const d = $('rPmDelta');
+    if(pm0>0 && aporte>0){
+      const dv = pmF-pm0, dp = dv/pm0*100;
+      d.textContent = (dv<=0?'▼ ':'▲ ') + brl(Math.abs(dv)) + ' (' + pct(dp) + ') vs. preço médio atual';
+      d.className = 'delta ' + (dv<0?'pos':dv>0?'neg':'');
+    } else { d.textContent = aporte>0 ? '' : 'Adicione compras para ver a variação'; d.className='delta'; }
+    $('rQtd').textContent = num(q);
+    $('rTot').textContent = brl(tot);
+    $('rAporte').textContent = brl(aporte);
+    if(cot>0 && q>0){
+      const mkt = cot*q, res = mkt-tot;
+      $('rMkt').textContent = brl(mkt);
+      $('rRes').textContent = (res>0?'+':'') + brl(res); $('rRes').className = res>=0?'pos':'neg';
+      $('rResPct').textContent = tot>0 ? pct(res/tot*100) : '—'; $('rResPct').className = res>=0?'pos':'neg';
+    } else { ['rMkt','rRes','rResPct'].forEach(id => { $(id).textContent='—'; $(id).className=''; }); }
+
+    // meta
+    const T = parse(state.metaPm), c = parse(state.metaPreco) || cot, out = $('metaOut');
+    $('metaPreco').placeholder = cot>0 ? num(cot,2) + ' (cotação)' : '0,00';
+    if(!(T>0)){ out.textContent = 'Preencha o preço médio desejado.'; return; }
+    if(!(c>0)){ out.textContent = 'Informe o preço de compra ou a cotação atual.'; return; }
+    if(!(pm0>0 && q0>0)){ out.textContent = 'Preencha o preço médio atual e a quantidade.'; return; }
+    if(Math.abs(T-pm0)<1e-9){ out.textContent = 'Você já está nesse preço médio.'; return; }
+    const ok = (c<T && T<pm0) || (c>T && T>pm0);
+    if(!ok){ out.textContent = `Com compras a ${brl(c)} não dá para chegar a ${brl(T)}: o preço desejado precisa ficar entre o preço de compra e o preço médio atual.`; return; }
+    const n = Math.ceil(q0*(pm0-T)/(T-c) - 1e-9);
+    const pmRes = (pm0*q0 + c*n)/(q0+n);
+    out.innerHTML = `Compre <b>${num(n)}</b> cotas a <b>${brl(c)}</b> (aporte de <b>${brl(c*n)}</b>). O preço médio fica em <b>${brl(pmRes)}</b>.`;
+  }
+
+  $('add').addEventListener('click', () => { if(state.buys.length<MAX){ state.buys.push({p:'',q:''}); renderBuys(); calc(); save(); $('bp'+(state.buys.length-1)).focus(); } });
+  $('fillQuote').addEventListener('click', () => { const c = state.cot; if(!parse(c)) { $('cot').focus(); return; }
+    state.buys.forEach(b => { if(!String(b.p).trim()) b.p = c; }); renderBuys(); calc(); save(); });
+  let armed = false;
+  $('clear').addEventListener('click', e => {
+    if(!armed){ armed = true; e.target.textContent = 'Toque de novo para limpar'; setTimeout(()=>{armed=false; e.target.textContent='Limpar tudo';},3000); return; }
+    armed = false; e.target.textContent = 'Limpar tudo';
+    state = {ticker:'',pm:'',qtd:'',cot:'',metaPm:'',metaPreco:'',buys:[{p:'',q:''},{p:'',q:''},{p:'',q:''},{p:'',q:''},{p:'',q:''}]};
+    fields.forEach(f => $(f).value=''); renderBuys(); calc(); save();
+  });
+
+  renderBuys(); calc();
+})();
+</script>
+
+</body>
+</html>
