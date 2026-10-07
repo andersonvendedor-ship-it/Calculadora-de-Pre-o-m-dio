@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Preço Médio">
 <style>:root{color-scheme:light}body{margin:0;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}[hidden]{display:none!important}</style>
-<title>Calculadora de Preço Médio</title>
+<title>Simulador de Preço Médio e Dividendos</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <style>
@@ -179,15 +179,13 @@ footer{color:var(--muted);font-size:.78rem;text-align:center}
 <body>
 <div class="wrap">
   <header>
-    <h1>Calculadora de Preço Médio</h1>
-    <p>Monte uma estratégia com vários ativos: venda um, compre outros e veja o preço médio, o saldo em caixa e a renda em dividendos antes e depois. Os campos vêm com um exemplo (valores fictícios): troque pelos seus ou use Limpar tudo.</p>
+    <h1>SIMULADOR DE PREÇO MÉDIO E DIVIDENDOS</h1>
   </header>
 
   <div class="grid">
     <div class="col">
       <section class="panel" aria-labelledby="h-cart">
         <h2 id="h-cart">Carteira</h2>
-        <p class="hint" style="margin-top:-6px">Cadastre os ativos que você tem e os que pretende comprar. Para um ativo novo, deixe a quantidade em 0. Informe o dividendo por cota ou um dos yields: os outros campos são calculados sobre o preço médio atual do ativo (ou, se você ainda não o tem, sobre o preço da primeira compra). O yield anual equivalente é (1 + yield mensal)<sup>12</sup> − 1.</p>
         <div id="assets" class="assets"></div>
         <div class="actions"><button id="addAsset" class="btn" type="button">+ Adicionar ativo</button></div>
       </section>
@@ -212,7 +210,6 @@ footer{color:var(--muted);font-size:.78rem;text-align:center}
         <ul class="crit" id="fCrit"></ul>
         <div class="tolrow"><label for="tol" style="display:inline">Queda de renda que eu aceito:</label>
           <input id="tol" type="text" inputmode="decimal" placeholder="5"> <span>% da renda mensal</span></div>
-        <p class="hint">Critérios simples, com os números desta simulação. Não é recomendação de investimento.</p>
       </section>
 
       <section class="panel" aria-labelledby="h-res">
