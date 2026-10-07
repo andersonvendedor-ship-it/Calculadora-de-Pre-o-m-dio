@@ -13,7 +13,7 @@
 /* Layout: carteira e operações à esquerda, resultado da estratégia à direita; gráficos em faixa única abaixo */
 :root{
   --bg:#eef1f4; --surface:#ffffff; --line:#d5dbe2; --axis:#b5bdc7; --ink:#16212e; --muted:#5d6b7a;
-  --accent:#0d6b5f; --accent-soft:#dcefeb; --gain:#11804a; --loss:#c0392b; --c-before:#8591a0; --case:#1b2430;
+  --accent:#0d6b5f; --accent-soft:#dcefeb; --gain:#11804a; --loss:#c0392b; --sell:#c0392b; --c-before:#8591a0; --case:#1b2430;
   --st-g:#0ca30c; --st-y:#fab219; --st-r:#d03b3b;
   --a1:#2a78d6; --a2:#eb6834; --a3:#1baf7a; --a4:#eda100; --a5:#e87ba4; --a6:#008300; --a7:#4a3aa7; --a8:#e34948;
   --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
@@ -21,11 +21,11 @@
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#10161d; --surface:#18212b; --line:#2b3744; --axis:#3d4a59; --ink:#e6ecf2; --muted:#93a2b2;
-  --accent:#4cc3ad; --accent-soft:#173a36; --gain:#4fd18b; --loss:#ff7a6b; --c-before:#6b7b8d; --case:#0b1017;
+  --accent:#4cc3ad; --accent-soft:#173a36; --gain:#4fd18b; --loss:#ff7a6b; --sell:#b83a30; --c-before:#6b7b8d; --case:#0b1017;
   --a1:#3987e5; --a2:#d95926; --a3:#199e70; --a4:#c98500; --a5:#d55181; --a6:#008300; --a7:#9085e9; --a8:#e66767; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#10161d; --surface:#18212b; --line:#2b3744; --axis:#3d4a59; --ink:#e6ecf2; --muted:#93a2b2;
-  --accent:#4cc3ad; --accent-soft:#173a36; --gain:#4fd18b; --loss:#ff7a6b; --c-before:#6b7b8d; --case:#0b1017;
+  --accent:#4cc3ad; --accent-soft:#173a36; --gain:#4fd18b; --loss:#ff7a6b; --sell:#b83a30; --c-before:#6b7b8d; --case:#0b1017;
   --a1:#3987e5; --a2:#d95926; --a3:#199e70; --a4:#c98500; --a5:#d55181; --a6:#008300; --a7:#9085e9; --a8:#e66767; color-scheme:dark}
 
 *{box-sizing:border-box}
@@ -94,6 +94,8 @@ input[data-k="tk"]{text-transform:uppercase;font-weight:600;letter-spacing:.04em
 .seg button{border:0;background:transparent;color:var(--muted);font:inherit;font-weight:600;font-size:.88rem;cursor:pointer}
 .seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--ink)}
 .seg button + button{border-left:1px solid var(--line)}
+.seg button[data-t="c"][aria-pressed="true"]{background:var(--accent);color:#fff}
+.seg button[data-t="v"][aria-pressed="true"]{background:var(--sell);color:#fff}
 .op .lp{grid-area:preco} .op .lq{grid-area:qtd}
 .op .after{grid-area:after;font-family:var(--mono);font-size:.82rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 14px}
 .op .after:empty{display:none}
@@ -107,6 +109,7 @@ button.btn:disabled{opacity:.45;cursor:not-allowed}
 .hero .lbl{font-size:.82rem;color:var(--muted)}
 .hero .big{font-family:var(--mono);font-size:2.1rem;font-weight:600;letter-spacing:-.02em;line-height:1.1}
 .hero .delta{font-family:var(--mono);font-size:.88rem}
+.subh{margin:16px 0 6px;font-size:.78rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
 .stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border-top:1px solid var(--line)}
 .stat{padding:10px 0;border-bottom:1px solid var(--line);display:grid;gap:2px;min-width:0;align-content:start}
 .stat:nth-child(odd){padding-right:10px}
@@ -188,6 +191,8 @@ footer{color:var(--muted);font-size:.78rem;text-align:center}
         <h2 id="h-cart">Carteira</h2>
         <div id="assets" class="assets"></div>
         <div class="actions"><button id="addAsset" class="btn" type="button">+ Adicionar ativo</button></div>
+        <h3 class="subh">Carteira atual, antes das operações</h3>
+        <div class="stats" id="cartSum"></div>
       </section>
 
       <section class="panel" aria-labelledby="h-ops">
@@ -208,8 +213,9 @@ footer{color:var(--muted);font-size:.78rem;text-align:center}
           <div class="ftxt"><b id="fTitle">Sem avaliação</b><span id="fMsg"></span></div>
         </div>
         <ul class="crit" id="fCrit"></ul>
-        <div class="tolrow"><label for="tol" style="display:inline">Queda de renda que eu aceito:</label>
-          <input id="tol" type="text" inputmode="decimal" placeholder="5"> <span>% da renda mensal</span></div>
+        <div class="tolrow"><label for="tol" style="display:inline">Queda aceitável na renda mensal:</label>
+          <input id="tol" type="text" inputmode="decimal" placeholder="5"> <span>% (percentual, não em R$)</span></div>
+        <p class="hint" id="tolHint"></p>
       </section>
 
       <section class="panel" aria-labelledby="h-res">
@@ -660,6 +666,12 @@ footer{color:var(--muted);font-size:.78rem;text-align:center}
     $('rYa').textContent = hasDiv ? ar(Y0.a,YF.a) : '—';
     $('rAno').textContent = hasDiv ? num(T.ano0,2)+' → '+num(T.anoF,2) : '—';
     $('rCusto').textContent = num(T.custo0,2)+' → '+num(T.custoF,2);
+    $('cartSum').innerHTML = [
+      ['Renda mensal', hasDiv ? brl(T.ano0/12) : '—'],
+      ['Custo (PM × qtd.)', brl(T.custo0)],
+      ['Yield mensal s/ custo', hasDiv && isFinite(Y0.m) ? num(Y0.m,2)+'%' : '—'],
+      ['Yield anual equivalente', hasDiv && isFinite(Y0.a) ? num(Y0.a,2)+'%' : '—']
+    ].map(r => `<div class="stat"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('');
     renderFarol(S,hasDiv,saldo,Y0.a,YF.a);
     $('rNote').innerHTML = S.steps.length<=1 ? 'Adicione compras e vendas para simular a estratégia.' :
       saldo>0.004 ? `Sobram <b>${brl(saldo)}</b> em caixa depois das operações.` :
@@ -674,13 +686,15 @@ footer{color:var(--muted);font-size:.78rem;text-align:center}
     const T = S.T, panel = $('farolPanel'), f = $('farol'), list = $('fCrit');
     const set = (lvl,title,msg) => { panel.dataset.lvl = lvl; f.dataset.lvl = lvl; $('fTitle').textContent = title; $('fMsg').textContent = msg; };
     list.innerHTML = '';
+    $('tolHint').textContent = '';
     if(!hasDiv){ set('n','Sem avaliação','Informe o dividendo por cota ou o yield dos ativos.'); return; }
     if(S.steps.length<=1){ set('n','Sem simulação','Adicione compras e vendas para avaliar a estratégia.'); return; }
     let tol = parse(state.tol); if(!(tol>=0)) tol = 5;
     const d0 = T.ano0/12, dF = T.anoF/12, dp = d0>0 ? (dF/d0-1)*100 : (dF>0 ? 100 : 0);
     const items = [];
-    items.push({l: dp>=-0.005 ? 'g' : dp>=-tol ? 'y' : 'r',
-      t: `Renda mensal: ${brl(d0)} → ${brl(dF)}`+(d0>0?` (${spct(dp)})`:''), s:'renda'});
+    items.push({l: dp>=-tol-1e-9 ? 'g' : 'r',
+      t: `Renda mensal: ${brl(d0)} → ${brl(dF)}`+(d0>0?` (${spct(dp)}`+(dp<-0.005&&dp>=-tol-1e-9?', dentro do aceito':'')+')':''), s:'renda'});
+    $('tolHint').textContent = d0>0 ? `Com ${num(tol,2)}%, a renda mensal pode cair até ${brl(d0*tol/100)} (de ${brl(d0)} para ${brl(d0*(1-tol/100))}).` : '';
     items.push({l: saldo>=-0.005 ? 'g' : 'y',
       t: saldo>0.005 ? `Caixa: sobram ${brl(saldo)}` : saldo<-0.005 ? `Caixa: faltam ${brl(-saldo)}, é preciso aportar` : 'Caixa: as vendas cobrem as compras', s:'caixa'});
     if(isFinite(yoc0) && isFinite(yocF)){
@@ -698,7 +712,7 @@ footer{color:var(--muted);font-size:.78rem;text-align:center}
     const has = l => items.some(it => it.l===l);
     if(has('r')) set('r','Não viável','Piora relevante: '+items.filter(it=>it.l==='r').map(it=>it.t.split(':')[0].toLowerCase()).join(' e ')+'.');
     else if(has('y')) set('y','Atenção','Vale revisar: '+items.filter(it=>it.l==='y').map(it=>it.t.split(':')[0].toLowerCase()).join(' e ')+'.');
-    else set('g','Viável','A renda não cai, não falta caixa e o yield sobre o custo não piora.');
+    else set('g','Viável','A renda fica dentro da queda que você aceita, não falta caixa e o yield sobre o custo não piora.');
   }
 
   function renderAssetTable(S,hasDiv){
