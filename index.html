@@ -10,19 +10,23 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <style>
-/* Layout: uma coluna de painéis empilhados (posição → compras → resultado), larga no desktop em duas colunas */
+/* Layout: carteira e operações à esquerda, resultado da estratégia à direita; gráficos em faixa única abaixo */
 :root{
-  --bg:#eef1f4; --surface:#ffffff; --line:#d5dbe2; --ink:#16212e; --muted:#5d6b7a;
-  --accent:#0d6b5f; --accent-soft:#dcefeb; --gain:#11804a; --loss:#c0392b;
+  --bg:#eef1f4; --surface:#ffffff; --line:#d5dbe2; --axis:#b5bdc7; --ink:#16212e; --muted:#5d6b7a;
+  --accent:#0d6b5f; --accent-soft:#dcefeb; --gain:#11804a; --loss:#c0392b; --c-before:#8591a0; --case:#1b2430;
+  --st-g:#0ca30c; --st-y:#fab219; --st-r:#d03b3b;
+  --a1:#2a78d6; --a2:#eb6834; --a3:#1baf7a; --a4:#eda100; --a5:#e87ba4; --a6:#008300; --a7:#4a3aa7; --a8:#e34948;
   --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#10161d; --surface:#18212b; --line:#2b3744; --ink:#e6ecf2; --muted:#93a2b2;
-  --accent:#4cc3ad; --accent-soft:#173a36; --gain:#4fd18b; --loss:#ff7a6b; color-scheme:dark}}
+  --bg:#10161d; --surface:#18212b; --line:#2b3744; --axis:#3d4a59; --ink:#e6ecf2; --muted:#93a2b2;
+  --accent:#4cc3ad; --accent-soft:#173a36; --gain:#4fd18b; --loss:#ff7a6b; --c-before:#6b7b8d; --case:#0b1017;
+  --a1:#3987e5; --a2:#d95926; --a3:#199e70; --a4:#c98500; --a5:#d55181; --a6:#008300; --a7:#9085e9; --a8:#e66767; color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#10161d; --surface:#18212b; --line:#2b3744; --ink:#e6ecf2; --muted:#93a2b2;
-  --accent:#4cc3ad; --accent-soft:#173a36; --gain:#4fd18b; --loss:#ff7a6b; color-scheme:dark}
+  --bg:#10161d; --surface:#18212b; --line:#2b3744; --axis:#3d4a59; --ink:#e6ecf2; --muted:#93a2b2;
+  --accent:#4cc3ad; --accent-soft:#173a36; --gain:#4fd18b; --loss:#ff7a6b; --c-before:#6b7b8d; --case:#0b1017;
+  --a1:#3987e5; --a2:#d95926; --a3:#199e70; --a4:#c98500; --a5:#d55181; --a6:#008300; --a7:#9085e9; --a8:#e66767; color-scheme:dark}
 
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.45}
@@ -30,35 +34,72 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 header h1{margin:0;font-size:1.45rem;font-weight:700;letter-spacing:-.01em;text-wrap:balance}
 header p{margin:4px 0 0;color:var(--muted);font-size:.92rem}
 .grid{display:grid;gap:16px;grid-template-columns:1fr}
-@media (min-width:860px){.grid{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);align-items:start}}
+@media (min-width:860px){.grid{grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);align-items:start}}
 .col{display:grid;gap:16px;min-width:0}
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:14px;min-width:0}
 .panel h2{margin:0;font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
 .fields{display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))}
 .fields .full{grid-column:1/-1}
 label{display:grid;gap:4px;font-size:.82rem;color:var(--muted);font-weight:500;min-width:0}
-input{font:inherit;font-family:var(--mono);font-size:1rem;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:10px 11px;width:100%;min-width:0}
-input:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-input#ticker{text-transform:uppercase;font-weight:600;letter-spacing:.04em}
-.quote-row{display:flex;gap:8px;align-items:end}
-.quote-row label{flex:1}
-.linkbtn{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;padding:10px 12px;border-radius:7px;border:1px solid var(--accent);color:var(--accent);text-decoration:none;font-weight:600;font-size:.88rem}
-.linkbtn:hover{background:var(--accent-soft)}
+input,select{font:inherit;font-family:var(--mono);font-size:1rem;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:10px 11px;width:100%;min-width:0}
+select{font-family:var(--sans);height:44px}
+input.derived{font-style:italic;color:var(--muted)}
+input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input[data-k="tk"]{text-transform:uppercase;font-weight:600;letter-spacing:.04em}
 .hint{font-size:.8rem;color:var(--muted);margin:0}
+.warn{color:var(--loss)}
+.pos{color:var(--gain)} .neg{color:var(--loss)}
 
-/* compras */
-.buys{display:grid;gap:10px}
-.buy{display:grid;grid-template-columns:28px minmax(0,1fr) minmax(0,1fr) 34px;gap:8px;align-items:end;padding-bottom:10px;border-bottom:1px dashed var(--line)}
-.buy:last-child{border-bottom:0;padding-bottom:0}
-.buy .n{font-family:var(--mono);font-weight:600;color:var(--accent);align-self:center;padding-top:16px;text-align:center}
-.buy .after{grid-column:2/-1;font-family:var(--mono);font-size:.82rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 14px}
-.buy .after b{color:var(--ink);font-weight:600}
-.buy .after .down{color:var(--gain)} .buy .after .up{color:var(--loss)}
-.del{height:42px;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:7px;cursor:pointer;font-size:1.1rem}
+/* farol */
+.panel.farol-panel{border-width:2px}
+.farol-panel[data-lvl="g"]{border-color:var(--st-g)} .farol-panel[data-lvl="y"]{border-color:var(--st-y)} .farol-panel[data-lvl="r"]{border-color:var(--st-r)}
+.farol{display:flex;gap:16px;align-items:center}
+.lamps{display:grid;gap:7px;padding:8px;background:var(--case);border-radius:22px;flex:none;border:1px solid var(--line)}
+.lamp{width:30px;height:30px;border-radius:50%;display:block;opacity:.16;transition:opacity .2s,box-shadow .2s}
+.lamp.r{background:var(--st-r)} .lamp.y{background:var(--st-y)} .lamp.g{background:var(--st-g)}
+.farol[data-lvl="r"] .lamp.r,.farol[data-lvl="y"] .lamp.y,.farol[data-lvl="g"] .lamp.g{opacity:1;box-shadow:0 0 14px 2px currentColor}
+.farol[data-lvl="r"] .lamp.r{color:var(--st-r)} .farol[data-lvl="y"] .lamp.y{color:var(--st-y)} .farol[data-lvl="g"] .lamp.g{color:var(--st-g)}
+.ftxt{display:grid;gap:4px;min-width:0}
+.ftxt b{font-size:1.55rem;line-height:1.1;letter-spacing:-.01em}
+.ftxt span{font-size:.9rem;color:var(--muted)}
+.crit{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.crit li{display:flex;gap:10px;align-items:flex-start;font-size:.88rem}
+.crit .ico{width:20px;height:20px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:.72rem;font-weight:700;color:#fff;margin-top:1px}
+.crit .g .ico{background:var(--st-g)} .crit .y .ico{background:var(--st-y);color:#3a2a00} .crit .r .ico{background:var(--st-r)}
+.tolrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:.84rem;color:var(--muted)}
+.tolrow input{width:84px;padding:7px 9px}
+
+/* carteira */
+.assets{display:grid;gap:16px}
+.asset{display:grid;gap:12px;padding-bottom:16px;border-bottom:1px dashed var(--line)}
+.asset:last-child{border-bottom:0;padding-bottom:0}
+.ahead{display:flex;align-items:center;gap:10px;min-width:0}
+.ahead .sw{width:12px;height:12px;border-radius:3px;background:var(--ac);flex:none}
+.ahead b{font-size:.9rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qlink{white-space:nowrap;padding:7px 10px;border-radius:7px;border:1px solid var(--accent);color:var(--accent);text-decoration:none;font-weight:600;font-size:.8rem}
+.qlink:hover{background:var(--accent-soft)}
+.del{height:34px;width:34px;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:7px;cursor:pointer;font-size:1.1rem;flex:none}
 .del:hover{color:var(--loss);border-color:var(--loss)}
+
+/* operações */
+.ops{display:grid;gap:12px}
+.op{display:grid;grid-template-columns:28px minmax(0,1fr) minmax(0,1fr) 34px;
+  grid-template-areas:"n ativo ativo del" ". tipo tipo ." ". preco qtd ." ". after after after";
+  gap:8px;align-items:end;padding-bottom:12px;border-bottom:1px dashed var(--line)}
+.op:last-child{border-bottom:0;padding-bottom:0}
+.op .n{grid-area:n;font-family:var(--mono);font-weight:600;color:var(--accent);align-self:center;text-align:center}
+.op .asel{grid-area:ativo}
+.op .del{grid-area:del;height:44px}
+.seg{grid-area:tipo;display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:7px;overflow:hidden;height:42px}
+.seg button{border:0;background:transparent;color:var(--muted);font:inherit;font-weight:600;font-size:.88rem;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--ink)}
+.seg button + button{border-left:1px solid var(--line)}
+.op .lp{grid-area:preco} .op .lq{grid-area:qtd}
+.op .after{grid-area:after;font-family:var(--mono);font-size:.82rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 14px}
+.op .after:empty{display:none}
+.op .after b{color:var(--ink);font-weight:600}
 .actions{display:flex;flex-wrap:wrap;gap:8px}
 button.btn{font:inherit;font-weight:600;font-size:.9rem;padding:10px 14px;border-radius:7px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
-button.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--surface)}
 button.btn:disabled{opacity:.45;cursor:not-allowed}
 
 /* resultado */
@@ -66,16 +107,70 @@ button.btn:disabled{opacity:.45;cursor:not-allowed}
 .hero .lbl{font-size:.82rem;color:var(--muted)}
 .hero .big{font-family:var(--mono);font-size:2.1rem;font-weight:600;letter-spacing:-.02em;line-height:1.1}
 .hero .delta{font-family:var(--mono);font-size:.88rem}
-.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;border-top:1px solid var(--line)}
-.stat{padding:10px 0;border-bottom:1px solid var(--line);display:grid;gap:2px;min-width:0}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border-top:1px solid var(--line)}
+.stat{padding:10px 0;border-bottom:1px solid var(--line);display:grid;gap:2px;min-width:0;align-content:start}
 .stat:nth-child(odd){padding-right:10px}
 .stat:nth-child(even){padding-left:10px;border-left:1px solid var(--line)}
 .stat span{font-size:.78rem;color:var(--muted)}
-.stat b{font-family:var(--mono);font-weight:600;font-size:1rem;overflow-wrap:anywhere}
-.pos{color:var(--gain)} .neg{color:var(--loss)}
+.stat b{font-family:var(--mono);font-weight:600;font-size:.98rem;overflow-wrap:anywhere}
 .tabnum,.big,.stat b,input{font-variant-numeric:tabular-nums}
-.meta-out{font-size:.92rem;background:var(--accent-soft);border-radius:7px;padding:10px 12px;margin:0}
-.meta-out b{font-family:var(--mono)}
+.note{margin:0;font-size:.9rem;background:var(--accent-soft);border-radius:7px;padding:10px 12px}
+.note b{font-family:var(--mono)}
+.tscroll{overflow-x:auto}
+table.tbl{width:100%;border-collapse:collapse;font-size:.84rem}
+.tbl th{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;text-align:right;padding:0 0 8px 12px;white-space:nowrap}
+.tbl th:first-child,.tbl td:first-child{text-align:left;padding-left:0}
+.tbl td{padding:9px 0 9px 12px;border-top:1px solid var(--line);text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;vertical-align:top;white-space:nowrap}
+.tbl td:first-child{font-family:var(--sans);font-weight:600}
+.tbl tr.tot td{background:var(--accent-soft);font-weight:600}
+.tbl tr.tot td:first-child{padding-left:6px}
+.tbl .sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:8px;vertical-align:baseline}
+.alist{display:grid;gap:10px}
+.acard{border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:grid;gap:8px;min-width:0}
+.acard.tot{background:var(--accent-soft);border-color:transparent}
+.acard .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.acard .top b{display:flex;align-items:center;gap:8px;min-width:0;font-size:.92rem}
+.acard .sw{width:10px;height:10px;border-radius:2px;flex:none}
+.acard .top span{font-family:var(--mono);font-weight:600;font-size:.88rem;white-space:nowrap}
+.acard dl{margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 10px}
+.acard dl div{min-width:0}
+.acard dl .wide{grid-column:1/-1}
+.acard dt{font-size:.72rem;color:var(--muted)}
+.acard dd{margin:0;font-family:var(--mono);font-size:.84rem;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+
+/* gráficos */
+.charts{display:grid;gap:22px 24px;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}
+figure.chart{margin:0;display:grid;gap:8px;min-width:0;align-content:start}
+figcaption{font-weight:600;font-size:.95rem}
+.legend{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:.8rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:12px;height:8px;border-radius:2px;display:inline-block}
+.plot svg{width:100%;height:auto;display:block;max-width:min(100%,520px);overflow:visible}
+.plot .grid{stroke:var(--line);stroke-width:1}
+.plot .base{stroke:var(--axis);stroke-width:1}
+.plot .tick{fill:var(--muted);font:10px var(--mono)}
+.plot .cat{fill:var(--muted);font:11px var(--sans)}
+.plot .val{fill:var(--ink);font-family:var(--mono);font-weight:600;font-size:11px}
+.plot text{pointer-events:none}
+.plot .bar{transition:filter .12s}
+.plot .mk{outline:none}
+.plot .mk .hit{fill:transparent}
+.plot .mk:hover .bar,.plot .mk:focus .bar{filter:brightness(1.14)}
+.plot .mk:focus-visible .hit{stroke:var(--accent);stroke-width:2;rx:4}
+.f1{fill:var(--a1)} .f2{fill:var(--a2)} .f3{fill:var(--a3)} .f4{fill:var(--a4)} .f5{fill:var(--a5)} .f6{fill:var(--a6)} .f7{fill:var(--a7)} .f8{fill:var(--a8)}
+.fb{fill:var(--c-before)} .fa{fill:var(--accent)}
+.k1{background:var(--a1)} .k2{background:var(--a2)} .k3{background:var(--a3)} .k4{background:var(--a4)} .k5{background:var(--a5)} .k6{background:var(--a6)} .k7{background:var(--a7)} .k8{background:var(--a8)}
+.kb{background:var(--c-before)} .ka{background:var(--accent)}
+.empty{margin:0;padding:18px 0;color:var(--muted);font-size:.88rem}
+details.tv summary{cursor:pointer;font-weight:600;font-size:.88rem;color:var(--accent);padding:4px 0}
+details.tv .tscroll{margin-top:8px}
+.tip{position:fixed;z-index:50;pointer-events:none;background:var(--surface);color:var(--ink);border:1px solid var(--axis);border-radius:8px;padding:8px 10px;font-size:.8rem;box-shadow:0 4px 14px rgba(0,0,0,.18);max-width:240px;display:grid;gap:4px}
+.tip[hidden]{display:none}
+.tip .tt{color:var(--muted);font-size:.74rem}
+.tip .tr{display:flex;align-items:center;gap:8px}
+.tip .tr i{width:10px;height:3px;border-radius:2px;flex:none}
+.tip .tr b{font-family:var(--mono);font-size:.9rem}
+.tip .tr span{color:var(--muted)}
 footer{color:var(--muted);font-size:.78rem;text-align:center}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -85,66 +180,73 @@ footer{color:var(--muted);font-size:.78rem;text-align:center}
 <div class="wrap">
   <header>
     <h1>Calculadora de Preço Médio</h1>
-    <p>Simule novas compras de ações, FIIs ou ETFs e veja o preço médio recalculado a cada aporte.</p>
+    <p>Monte uma estratégia com vários ativos: venda um, compre outros e veja o preço médio, o saldo em caixa e a renda em dividendos antes e depois. Os campos vêm com um exemplo (valores fictícios): troque pelos seus ou use Limpar tudo.</p>
   </header>
 
   <div class="grid">
     <div class="col">
-      <section class="panel" aria-labelledby="h-pos">
-        <h2 id="h-pos">Posição atual</h2>
-        <div class="fields">
-          <label class="full">Ticker
-            <input id="ticker" type="text" autocomplete="off" spellcheck="false" maxlength="12" placeholder="PETR4">
-          </label>
-          <label>Preço médio atual (R$)
-            <input id="pm" type="text" inputmode="decimal" placeholder="0,00">
-          </label>
-          <label>Quantidade
-            <input id="qtd" type="text" inputmode="numeric" placeholder="0">
-          </label>
-          <div class="full quote-row">
-            <label>Cotação atual (R$)
-              <input id="cot" type="text" inputmode="decimal" placeholder="0,00">
-            </label>
-            <a id="quoteLink" class="linkbtn" href="https://www.google.com/finance/" target="_blank" rel="noopener">Ver cotação ↗</a>
-          </div>
-          <p class="hint full">A cotação é digitada por você. O botão abre a página do ticker no Google Finance para consultar o preço do momento.</p>
-        </div>
+      <section class="panel" aria-labelledby="h-cart">
+        <h2 id="h-cart">Carteira</h2>
+        <p class="hint" style="margin-top:-6px">Cadastre os ativos que você tem e os que pretende comprar. Para um ativo novo, deixe a quantidade em 0. Informe o dividendo por cota ou um dos yields: os outros campos são calculados sobre o preço médio atual do ativo (ou, se você ainda não o tem, sobre o preço da primeira compra). O yield anual equivalente é (1 + yield mensal)<sup>12</sup> − 1.</p>
+        <div id="assets" class="assets"></div>
+        <div class="actions"><button id="addAsset" class="btn" type="button">+ Adicionar ativo</button></div>
       </section>
 
-      <section class="panel" aria-labelledby="h-buys">
-        <h2 id="h-buys">Compras simuladas</h2>
-        <div id="buys" class="buys"></div>
+      <section class="panel" aria-labelledby="h-ops">
+        <h2 id="h-ops">Operações simuladas</h2>
+        <div id="ops" class="ops"></div>
         <div class="actions">
-          <button id="add" class="btn" type="button">+ Adicionar compra</button>
-          <button id="fillQuote" class="btn" type="button">Usar cotação nas compras vazias</button>
+          <button id="addOp" class="btn" type="button">+ Adicionar operação</button>
           <button id="clear" class="btn" type="button">Limpar tudo</button>
         </div>
       </section>
     </div>
 
     <div class="col">
+      <section class="panel farol-panel" id="farolPanel" data-lvl="n" aria-labelledby="h-far">
+        <h2 id="h-far">Viabilidade da estratégia</h2>
+        <div class="farol" id="farol" data-lvl="n" role="status" aria-live="polite">
+          <div class="lamps" aria-hidden="true"><i class="lamp r"></i><i class="lamp y"></i><i class="lamp g"></i></div>
+          <div class="ftxt"><b id="fTitle">Sem avaliação</b><span id="fMsg"></span></div>
+        </div>
+        <ul class="crit" id="fCrit"></ul>
+        <div class="tolrow"><label for="tol" style="display:inline">Queda de renda que eu aceito:</label>
+          <input id="tol" type="text" inputmode="decimal" placeholder="5"> <span>% da renda mensal</span></div>
+        <p class="hint">Critérios simples, com os números desta simulação. Não é recomendação de investimento.</p>
+      </section>
+
       <section class="panel" aria-labelledby="h-res">
-        <h2 id="h-res">Resultado <span id="resTicker"></span></h2>
+        <h2 id="h-res">Resultado da estratégia</h2>
         <div class="hero">
-          <span class="lbl">Novo preço médio</span>
-          <span id="rPm" class="big">R$ 0,00</span>
-          <span id="rPmDelta" class="delta"></span>
+          <span class="lbl">Renda mensal da carteira após a simulação</span>
+          <span id="rRenda" class="big">R$ 0,00</span>
+          <span id="rRendaDelta" class="delta"></span>
         </div>
         <div class="stats">
-          <div class="stat"><span>Quantidade total</span><b id="rQtd">0</b></div>
-          <div class="stat"><span>Total investido</span><b id="rTot">R$ 0,00</b></div>
-          <div class="stat"><span>Aporte simulado</span><b id="rAporte">R$ 0,00</b></div>
-          <div class="stat"><span>Valor a mercado</span><b id="rMkt">—</b></div>
-          <div class="stat"><span>Resultado (R$)</span><b id="rRes">—</b></div>
-          <div class="stat"><span>Resultado (%)</span><b id="rResPct">—</b></div>
+          <div class="stat"><span>Vendas</span><b id="rVendas">R$ 0,00</b></div>
+          <div class="stat"><span>Compras</span><b id="rCompras">R$ 0,00</b></div>
+          <div class="stat"><span>Saldo (vendas − compras)</span><b id="rSaldo">R$ 0,00</b></div>
+          <div class="stat"><span>Lucro realizado nas vendas</span><b id="rReal">—</b></div>
+          <div class="stat"><span>Yield mensal sobre o custo</span><b id="rYm">—</b></div>
+          <div class="stat"><span>Yield anual equivalente</span><b id="rYa">—</b></div>
+          <div class="stat"><span>Renda anual (R$)</span><b id="rAno">—</b></div>
+          <div class="stat"><span>Custo da carteira (R$)</span><b id="rCusto">—</b></div>
         </div>
+        <p id="rNote" class="note"></p>
+      </section>
+
+      <section class="panel" aria-labelledby="h-at">
+        <h2 id="h-at">Ativos: antes → depois</h2>
+        <div class="alist" id="assetTable"></div>
       </section>
 
       <section class="panel" aria-labelledby="h-meta">
         <h2 id="h-meta">Meta de preço médio</h2>
-        <p class="hint" style="margin-top:-6px">Quantas cotas comprar a um preço para chegar ao preço médio desejado, a partir da posição atual.</p>
+        <p class="hint" style="margin-top:-6px">Quantas cotas comprar a um preço para chegar ao preço médio desejado em um ativo, a partir da posição atual.</p>
         <div class="fields">
+          <label class="full">Ativo
+            <select id="metaA"></select>
+          </label>
           <label>Preço médio desejado (R$)
             <input id="metaPm" type="text" inputmode="decimal" placeholder="0,00">
           </label>
@@ -152,122 +254,559 @@ footer{color:var(--muted);font-size:.78rem;text-align:center}
             <input id="metaPreco" type="text" inputmode="decimal" placeholder="cotação">
           </label>
         </div>
-        <p id="metaOut" class="meta-out">Preencha o preço médio desejado.</p>
+        <p id="metaOut" class="note">Preencha o preço médio desejado.</p>
       </section>
     </div>
   </div>
-  <footer>Os dados ficam salvos só neste navegador. Cálculo sem taxas de corretagem e emolumentos.</footer>
+
+  <section class="panel" aria-labelledby="h-ch">
+    <h2 id="h-ch">Gráficos da estratégia</h2>
+    <div class="charts">
+      <figure class="chart">
+        <figcaption>Renda mensal por ativo (R$)</figcaption>
+        <div class="legend" id="lg1"></div>
+        <div class="plot" id="ch1"></div>
+      </figure>
+      <figure class="chart">
+        <figcaption>Variação da renda mensal por ativo (R$)</figcaption>
+        <div class="legend" id="lg2"></div>
+        <div class="plot" id="ch2"></div>
+      </figure>
+      <figure class="chart">
+        <figcaption>Yield anual equivalente da carteira (% ao ano)</figcaption>
+        <div class="legend"><span><i class="kb"></i>Atual</span><span><i class="ka"></i>Após a simulação</span></div>
+        <div class="plot" id="ch3"></div>
+      </figure>
+      <figure class="chart">
+        <figcaption>Yield anual equivalente por ativo (% ao ano)</figcaption>
+        <div class="legend"><span><i class="kb"></i>Atual</span><span><i class="ka"></i>Após a simulação</span></div>
+        <div class="plot" id="ch4"></div>
+      </figure>
+    </div>
+    <details class="tv">
+      <summary>Ver os dados dos gráficos em tabela</summary>
+      <div class="tscroll" id="tv"></div>
+    </details>
+  </section>
+
+  <footer>Os dados ficam salvos só neste navegador. Cálculo sem corretagem, emolumentos e impostos, com proventos constantes. Yield mensal = renda mensal média ÷ valor investido; yield anual equivalente = (1 + yield mensal)^12 − 1. O saldo em caixa não rende nesta simulação. Vendas usam o preço médio do ativo, sem alterá-lo.</footer>
 </div>
+<div id="tip" class="tip" hidden></div>
 
 <script>
 (function(){
-  const MAX = 10, KEY = 'pm-calc-v1';
+  const MAXA = 8, MAXO = 12, KEY = 'pm-calc-v2';
   const $ = id => document.getElementById(id);
-  const brl = v => v.toLocaleString('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:2,maximumFractionDigits:2});
   const num = (v,d=0) => v.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
-  const pct = v => (v>0?'+':'') + v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) + '%';
+  const brl = v => v.toLocaleString('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:2,maximumFractionDigits:2});
+  const r2 = v => Math.round(v*100)/100;
+  const sign = v => v>0?'+':v<0?'−':'';
+  const sbrl = v => { v = r2(v); return sign(v)+brl(Math.abs(v)); };
+  const sn = (v,d=2) => { const x = Math.round(v*Math.pow(10,d))/Math.pow(10,d); return sign(x)+num(Math.abs(x),d); };
+  const spct = v => sn(v,2)+'%';
+  const cls = v => v>0.004?'pos':v<-0.004?'neg':'';
+  const fmtIn = (v,d) => v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:d});
+  // juros equivalentes: o anual é o mensal composto em 12 meses
+  const yAnual = m => Math.pow(1+m,12)-1;
+  const yMensal = A => Math.pow(1+A,1/12)-1;
+  const portY = (ano,custo) => { if(!(custo>0)) return {m:NaN,a:NaN}; const m = ano/12/custo; return {m:m*100,a:yAnual(m)*100}; };
+  const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   function parse(s){
-    s = String(s||'').trim().replace(/\s|R\$/g,'');
+    s = String(s==null?'':s).trim().replace(/\s|R\$|%/g,'');
     if(!s) return NaN;
     if(s.includes(',')) s = s.replace(/\./g,'').replace(',','.');
     const n = parseFloat(s); return isFinite(n) ? n : NaN;
   }
+  const FREQ = [['12','Mensal'],['4','Trimestral'],['2','Semestral'],['1','Anual']];
+  const newAsset = () => ({tk:'',q:'0',pm:'',div:'',ym:'',ya:'',src:'div',fr:'12'});
+  const newOp = a => ({a:a||0,t:'c',p:'',q:''});
 
-  // estado inicial com exemplo
-  let state = {ticker:'PETR4', pm:'32,50', qtd:'100', cot:'30,80', metaPm:'31,50', metaPreco:'',
-    buys:[{p:'30,80',q:'50'},{p:'29,90',q:'50'},{p:'',q:''},{p:'',q:''},{p:'',q:''}]};
-  try{ const s = JSON.parse(localStorage.getItem(KEY)); if(s && Array.isArray(s.buys)) state = s; }catch(e){}
+  function defaults(){
+    return {
+      assets:[
+        {tk:'KNCR11',q:'200',pm:'104,00',div:'1,00',ym:'',ya:'',src:'div',fr:'12'},
+        {tk:'TRXF11',q:'0',pm:'',div:'0,65',ym:'',ya:'',src:'div',fr:'12'},
+        {tk:'MXRF11',q:'0',pm:'',div:'0,10',ym:'',ya:'',src:'div',fr:'12'}],
+      ops:[{a:0,t:'v',p:'105,35',q:'200'},{a:1,t:'c',p:'71,00',q:'150'},{a:2,t:'c',p:'9,30',q:'1000'},newOp(0),newOp(0)],
+      metaA:1, metaPm:'', metaPreco:'', tol:'5'
+    };
+  }
+  let state = defaults();
+  try{
+    const s2 = JSON.parse(localStorage.getItem(KEY));
+    if(s2 && Array.isArray(s2.assets) && s2.assets.length && Array.isArray(s2.ops)){
+      state = Object.assign({tol:'5'}, s2);
+    } else {
+      const s1 = JSON.parse(localStorage.getItem('pm-calc-v1'));
+      if(s1 && Array.isArray(s1.buys)){
+        state = {assets:[{tk:s1.ticker||'',q:s1.qtd||'0',pm:s1.pm||'',div:s1.div||'',ym:'',ya:'',src:'div',fr:s1.freq||'12'}],
+          ops:s1.buys.map(b=>({a:0,t:b.t==='v'?'v':'c',p:b.p||'',q:b.q||''})), metaA:0, metaPm:s1.metaPm||'', metaPreco:s1.metaPreco||'', tol:'5'};
+      }
+    }
+  }catch(e){}
+  // sanidade do estado carregado
+  state.assets = state.assets.slice(0,MAXA).map(a => {
+    const z = Object.assign(newAsset(),a);
+    if(z.yld!==undefined){ if(!z.ya) z.ya = z.yld; if(z.src==='yld') z.src = 'ya'; delete z.yld; }
+    if(!['div','ym','ya'].includes(z.src)) z.src = 'div';
+    return z; });
+  state.ops = (state.ops.length?state.ops:[newOp(0)]).slice(0,MAXO).map(o=>({a:Math.min(Math.max(+o.a||0,0),state.assets.length-1),t:o.t==='v'?'v':'c',p:o.p||'',q:o.q||''}));
+  state.metaA = Math.min(Math.max(+state.metaA||0,0),state.assets.length-1);
   const save = () => { try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} };
 
-  const fields = ['ticker','pm','qtd','cot','metaPm','metaPreco'];
-  fields.forEach(f => { $(f).value = state[f] || ''; $(f).addEventListener('input', e => {
-    state[f] = f==='ticker' ? e.target.value.toUpperCase() : e.target.value; calc(); save(); }); });
-
-  function renderBuys(){
-    const box = $('buys'); box.innerHTML = '';
-    state.buys.forEach((b,i) => {
-      const row = document.createElement('div'); row.className = 'buy';
-      row.innerHTML =
-        `<span class="n">${i+1}</span>
-         <label>Novo preço (R$)<input id="bp${i}" type="text" inputmode="decimal" placeholder="0,00"></label>
-         <label>Nova quantidade<input id="bq${i}" type="text" inputmode="numeric" placeholder="0"></label>
-         <button class="del" type="button" aria-label="Remover compra ${i+1}">×</button>
-         <div class="after" id="ba${i}"></div>`;
-      box.appendChild(row);
-      const ip = row.querySelector('#bp'+i), iq = row.querySelector('#bq'+i);
-      ip.value = b.p; iq.value = b.q;
-      ip.addEventListener('input', e => { state.buys[i].p = e.target.value; calc(); save(); });
-      iq.addEventListener('input', e => { state.buys[i].q = e.target.value; calc(); save(); });
-      row.querySelector('.del').addEventListener('click', () => {
-        state.buys.splice(i,1); if(!state.buys.length) state.buys.push({p:'',q:''});
-        renderBuys(); calc(); save(); });
-    });
-    $('add').disabled = state.buys.length >= MAX;
+  const assetLabel = i => { const t = ((state.assets[i]||{}).tk||'').trim().toUpperCase(); return t || 'Ativo '+(i+1); };
+  function fillSelect(sel,val){
+    sel.innerHTML = '';
+    state.assets.forEach((a,i) => { const o = document.createElement('option'); o.value = String(i); o.textContent = assetLabel(i); sel.appendChild(o); });
+    sel.value = String(Math.min(Math.max(val,0),state.assets.length-1));
+  }
+  function refreshSelects(){
+    document.querySelectorAll('.asel').forEach(s => fillSelect(s,+s.value||0));
+    fillSelect($('metaA'),+$('metaA').value||0);
   }
 
-  function calc(){
-    const t = (state.ticker||'').trim().toUpperCase();
-    $('resTicker').textContent = t ? '· ' + t : '';
-    $('quoteLink').href = t ? 'https://www.google.com/finance/quote/' + encodeURIComponent(t) + ':BVMF' : 'https://www.google.com/finance/';
-    const pm0 = parse(state.pm) || 0, q0 = parse(state.qtd) || 0, cot = parse(state.cot);
-    let tot = pm0*q0, q = q0, aporte = 0, prevPm = pm0;
+  /* ---------- carteira ---------- */
+  function renderAssets(){
+    const box = $('assets'); box.innerHTML = '';
+    state.assets.forEach((a,i) => {
+      const el = document.createElement('div'); el.className = 'asset'; el.style.setProperty('--ac','var(--a'+(i+1)+')');
+      el.innerHTML =
+        `<div class="ahead"><span class="sw" aria-hidden="true"></span><b>Ativo ${i+1}</b>
+           <a class="qlink" target="_blank" rel="noopener" href="https://www.google.com/finance/">Ver cotação ↗</a>
+           <button class="del" type="button" aria-label="Remover ativo ${i+1}">×</button></div>
+         <div class="fields">
+           <label>Ticker<input data-k="tk" type="text" autocomplete="off" spellcheck="false" maxlength="12" placeholder="KNCR11"></label>
+           <label>Quantidade atual<input data-k="q" type="text" inputmode="numeric" placeholder="0"></label>
+           <label>Preço médio atual (R$)<input data-k="pm" type="text" inputmode="decimal" placeholder="0,00"></label>
+           <label>Frequência<select data-k="fr"></select></label>
+           <label class="full">Dividendo por cota (R$)<input data-k="div" type="text" inputmode="decimal" placeholder="0,00"></label>
+           <label>Yield mensal (%)<input data-k="ym" type="text" inputmode="decimal" placeholder="0,00"></label>
+           <label>Yield anual equivalente (%)<input data-k="ya" type="text" inputmode="decimal" placeholder="0,00"></label>
+         </div>`;
+      box.appendChild(el);
+      const f = k => el.querySelector('[data-k="'+k+'"]');
+      FREQ.forEach(([v,t]) => { const o = document.createElement('option'); o.value = v; o.textContent = t; f('fr').appendChild(o); });
+      ['tk','q','pm','div','ym','ya'].forEach(k => {
+        f(k).value = a[k] || '';
+        f(k).addEventListener('input', e => {
+          a[k] = k==='tk' ? e.target.value.toUpperCase() : e.target.value;
+          if(k==='div'||k==='ym'||k==='ya') a.src = k;
+          calc(); save(); if(k==='tk') refreshSelects();
+        });
+      });
+      f('fr').value = a.fr;
+      f('fr').addEventListener('input', e => { a.fr = e.target.value; calc(); save(); });
+      el.querySelector('.del').addEventListener('click', () => removeAsset(i));
+    });
+    $('addAsset').disabled = state.assets.length >= MAXA;
+  }
+  function removeAsset(i){
+    if(state.assets.length<=1){ state.assets[0] = newAsset(); }
+    else {
+      state.assets.splice(i,1);
+      state.ops = state.ops.filter(o => o.a!==i).map(o => ({...o,a:o.a>i?o.a-1:o.a}));
+      if(!state.ops.length) state.ops.push(newOp(0));
+      state.metaA = Math.min(state.metaA>i?state.metaA-1:state.metaA,state.assets.length-1);
+    }
+    renderAssets(); renderOps(); fillSelect($('metaA'),state.metaA); calc(); save();
+  }
 
-    state.buys.forEach((b,i) => {
-      const p = parse(b.p), n = parse(b.q), el = $('ba'+i);
-      if(!(p>0 && n>0)){ el.textContent = ''; return; }
-      tot += p*n; q += n; aporte += p*n;
-      const pmNow = tot/q, diff = pmNow - prevPm;
-      const cls = diff<0 ? 'down' : diff>0 ? 'up' : '';
-      el.innerHTML = `<span>PM: <b>${brl(pmNow)}</b></span>
-        <span class="${cls}">${prevPm>0 ? (diff<=0?'▼ ':'▲ ') + brl(Math.abs(diff)) : ''}</span>
-        <span>Qtd: <b>${num(q)}</b></span><span>Aporte: <b>${brl(p*n)}</b></span>`;
-      prevPm = pmNow;
+  /* ---------- operações ---------- */
+  function syncRow(row,i){
+    const t = state.ops[i].t;
+    row.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.t===t)));
+    row.querySelector('.lpt').textContent = t==='v' ? 'Preço de venda (R$)' : 'Preço de compra (R$)';
+    row.querySelector('.lqt').textContent = t==='v' ? 'Qtd. a vender' : 'Qtd. a comprar';
+  }
+  function renderOps(){
+    const box = $('ops'); box.innerHTML = '';
+    state.ops.forEach((o,i) => {
+      const row = document.createElement('div'); row.className = 'op';
+      row.innerHTML =
+        `<span class="n">${i+1}</span>
+         <select class="asel" aria-label="Ativo da operação ${i+1}"></select>
+         <button class="del" type="button" aria-label="Remover operação ${i+1}">×</button>
+         <div class="seg" role="group" aria-label="Tipo da operação ${i+1}">
+           <button type="button" data-t="c" aria-pressed="true">Compra</button>
+           <button type="button" data-t="v" aria-pressed="false">Venda</button>
+         </div>
+         <label class="lp"><span class="lpt"></span><input id="op${i}p" type="text" inputmode="decimal" placeholder="0,00"></label>
+         <label class="lq"><span class="lqt"></span><input id="op${i}q" type="text" inputmode="numeric" placeholder="0"></label>
+         <div class="after" id="oa${i}"></div>`;
+      box.appendChild(row);
+      const sel = row.querySelector('.asel'); fillSelect(sel,o.a);
+      sel.addEventListener('change', () => { o.a = +sel.value; calc(); save(); });
+      const ip = row.querySelector('#op'+i+'p'), iq = row.querySelector('#op'+i+'q');
+      ip.value = o.p; iq.value = o.q;
+      ip.addEventListener('input', e => { o.p = e.target.value; calc(); save(); });
+      iq.addEventListener('input', e => { o.q = e.target.value; calc(); save(); });
+      row.querySelectorAll('.seg button').forEach(btn => btn.addEventListener('click', () => { o.t = btn.dataset.t; syncRow(row,i); calc(); save(); }));
+      row.querySelector('.del').addEventListener('click', () => {
+        state.ops.splice(i,1); if(!state.ops.length) state.ops.push(newOp(0));
+        renderOps(); calc(); save(); });
+      syncRow(row,i);
+    });
+    $('addOp').disabled = state.ops.length >= MAXO;
+  }
+
+  /* ---------- simulação ---------- */
+  function quoteOf(i){
+    const a = state.assets[i];
+    // base do yield: preço médio atual; sem posição, o preço da primeira compra
+    const pm = parse(a.pm);
+    if(pm>0) return pm;
+    const o = state.ops.find(o => o.a===i && o.t==='c' && parse(o.p)>0) || state.ops.find(o => o.a===i && parse(o.p)>0);
+    return o ? parse(o.p) : 0;
+  }
+  function simulate(){
+    const as = state.assets.map((a,i) => {
+      const q0 = parse(a.q)||0, pm0 = parse(a.pm)||0, fr = +a.fr||12, quote = quoteOf(i);
+      const fo = state.ops.find(o => o.a===i && parse(o.p)>0), opPrice = fo ? parse(fo.p) : 0;
+      let dps = 0;
+      if(a.src==='ym'){ const m = parse(a.ym)/100; dps = (m>0 && quote>0) ? m*12/fr*quote : 0; }
+      else if(a.src==='ya'){ const A = parse(a.ya)/100; dps = (A>0 && quote>0) ? yMensal(A)*12/fr*quote : 0; }
+      else dps = parse(a.div)||0;
+      return {i,tk:assetLabel(i),q0,pm0,q:q0,pm:pm0,fr,quote,opPrice,dps,compras:0,vendas:0,real:0};
+    });
+    const ano = () => as.reduce((s,x) => s + x.dps*x.fr*x.q, 0);
+    const ano0 = ano();
+    const steps = [{label:'Atual',kind:'a',ano:ano0,text:'Carteira atual'}];
+    const rows = state.ops.map((o,k) => {
+      const x = as[o.a]; if(!x) return null;
+      const p = parse(o.p), n = parse(o.q);
+      if(!(p>0 && n>0)) return null;
+      if(o.t==='v'){
+        const ne = Math.min(n,x.q);
+        if(ne<=0) return {kind:'v',empty:true,x};
+        const nopm = !(x.pm>0);
+        const res = nopm ? 0 : (p-x.pm)*ne;
+        x.real += res; x.vendas += p*ne; const avail = x.q; x.q -= ne;
+        const st = {label:'V'+(k+1),kind:'v',ano:ano(),text:'Venda '+(k+1)+' · '+x.tk};
+        steps.push(st);
+        return {kind:'v',x,p,n:ne,limited:n>ne,nopm,avail,res,resPct:x.pm>0?(p-x.pm)/x.pm*100:null,q:x.q,pm:x.pm,ano:st.ano};
+      }
+      const prev = x.pm, prevQ = x.q, tot = x.pm*x.q + p*n;
+      x.q += n; x.pm = tot/x.q; x.compras += p*n;
+      const st = {label:'C'+(k+1),kind:'c',ano:ano(),text:'Compra '+(k+1)+' · '+x.tk};
+      steps.push(st);
+      return {kind:'c',x,p,n,q:x.q,pm:x.pm,prev,prevQ,value:p*n,ano:st.ano};
+    });
+    as.forEach(x => { if(x.q<=0) x.pm = 0; });
+    const sum = f => as.reduce((s,x) => s+f(x), 0);
+    const T = {
+      ano0, anoF:ano(), compras:sum(x=>x.compras), vendas:sum(x=>x.vendas), real:sum(x=>x.real),
+      custo0:sum(x=>x.pm0*x.q0), custoF:sum(x=>x.pm*x.q)
+    };
+    return {as,steps,rows,T};
+  }
+
+  /* ---------- dicas e gráficos ---------- */
+  const tipEl = $('tip');
+  function showTip(d,x,y){
+    tipEl.innerHTML = '';
+    const t = document.createElement('div'); t.className = 'tt'; t.textContent = d.title; tipEl.appendChild(t);
+    d.rows.forEach(r => {
+      const row = document.createElement('div'); row.className = 'tr';
+      const k = document.createElement('i'); k.style.background = 'var(--'+r.c+')';
+      const v = document.createElement('b'); v.textContent = r.v;
+      const n = document.createElement('span'); n.textContent = r.n;
+      row.append(k,v,n); tipEl.appendChild(row);
+    });
+    tipEl.hidden = false;
+    const w = tipEl.offsetWidth, h = tipEl.offsetHeight;
+    let left = x+14, top = y-h-12;
+    if(left+w > window.innerWidth-8) left = x-w-14;
+    if(left < 8) left = 8;
+    if(top < 8) top = y+18;
+    tipEl.style.left = left+'px'; tipEl.style.top = top+'px';
+  }
+  const hideTip = () => { tipEl.hidden = true; };
+  function wireTips(box,tips){
+    box._tips = tips;
+    if(box._wired) return; box._wired = true;
+    const find = e => { const m = e.target.closest && e.target.closest('.mk'); return m ? box._tips[+m.dataset.i] : null; };
+    box.addEventListener('pointermove', e => { const d = find(e); if(d) showTip(d,e.clientX,e.clientY); else hideTip(); });
+    box.addEventListener('pointerleave', hideTip);
+    box.addEventListener('focusin', e => { const d = find(e); if(d){ const r = e.target.getBoundingClientRect(); showTip(d,r.left+r.width/2,r.top+20); } });
+    box.addEventListener('focusout', hideTip);
+  }
+  function niceScale(minV,maxV){
+    const hi = Math.max(0,maxV), lo = Math.min(0,minV);
+    if(hi-lo<=0) return {min:0,max:1,step:.25};
+    const raw = (hi-lo)/4, mag = Math.pow(10,Math.floor(Math.log10(raw))), n = raw/mag;
+    const step = (n<=1?1:n<=2?2:n<=5?5:10)*mag;
+    // com valores negativos, sobra uma faixa abaixo da barra para o rótulo do valor
+    return {min:Math.floor(lo/step+1e-9)*step-(lo<0?step:0), max:Math.ceil(hi/step-1e-9)*step, step};
+  }
+  const topRound = (x,y,w,h,r) => { if(h<=0) return ''; r = Math.min(r,w/2,h);
+    return `M${x},${y+h}V${y+r}Q${x},${y} ${x+r},${y}H${x+w-r}Q${x+w},${y} ${x+w},${y+r}V${y+h}Z`; };
+  const botRound = (x,y,w,h,r) => { if(h<=0) return ''; r = Math.min(r,w/2,h);
+    return `M${x},${y}V${y+h-r}Q${x},${y+h} ${x+r},${y+h}H${x+w-r}Q${x+w},${y+h} ${x+w},${y+h-r}V${y}Z`; };
+  function frame(vals,o,stackMax){
+    const W=360,H=232,L=46,R=8,T=22,B=34, pw=W-L-R, ph=H-T-B;
+    const sc = niceScale(Math.min(0,...vals), stackMax!=null?stackMax:Math.max(0,...vals));
+    const y = v => T+ph-((v-sc.min)/(sc.max-sc.min))*ph;
+    const dec = sc.step>=1?0:sc.step>=.1?1:2;
+    let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.label)}">`;
+    const nt = Math.round((sc.max-sc.min)/sc.step);
+    for(let k=0;k<=nt;k++){
+      const t = sc.min+k*sc.step, yy = y(t);
+      s += `<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" class="${Math.abs(t)<sc.step/1000?'base':'grid'}"/>`;
+      s += `<text x="${L-6}" y="${yy+3.5}" text-anchor="end" class="tick">${o.tick(Math.abs(t)<sc.step/1000?0:t,dec)}</text>`;
+    }
+    return {W,H,L,R,T,B,pw,ph,y,s};
+  }
+  /* grupos de colunas simples (aceita valores negativos) */
+  function colChart(box,groups,o){
+    const vals = groups.flatMap(g => g.bars.map(b => b.v)).filter(isFinite);
+    const F = frame(vals,o); let s = F.s; const y0 = F.y(0), tips = [];
+    const gw = F.pw/groups.length;
+    groups.forEach((g,gi) => {
+      const nb = g.bars.length, gap = o.gap==null?2:o.gap;
+      const bw = Math.max(6,Math.min(24,(gw-12)/nb-gap)), total = nb*bw+(nb-1)*gap;
+      const x0 = F.L+gi*gw+(gw-total)/2;
+      g.bars.forEach((b,bi) => {
+        if(!isFinite(b.v)) return;
+        const x = x0+bi*(bw+gap), yy = F.y(b.v), top = Math.min(yy,y0), h = Math.abs(yy-y0), idx = tips.length;
+        tips.push({title:b.tipTitle||g.label, rows:[{c:b.c,v:o.tip(b.v),n:b.name}]});
+        s += `<g class="mk" data-i="${idx}" tabindex="0" aria-label="${esc((b.tipTitle||g.label)+', '+b.name+': '+o.tip(b.v))}">`;
+        s += `<path class="bar ${b.k}" d="${b.v>=0?topRound(x,top,bw,h,4):botRound(x,top,bw,h,4)}"/>`;
+        s += `<rect class="hit" x="${x-gap/2}" y="${F.T}" width="${bw+gap}" height="${F.ph}"/></g>`;
+        if(b.label!==false) s += `<text x="${x+bw/2}" y="${b.v>=0?top-5:top+h+13}" text-anchor="middle" class="val" style="font-size:${o.small?9:11}px">${o.val(b.v)}</text>`;
+      });
+      s += `<text x="${F.L+gi*gw+gw/2}" y="${F.H-12}" text-anchor="middle" class="cat">${esc(g.label)}</text>`;
+    });
+    box.innerHTML = s+'</svg>'; wireTips(box,tips);
+  }
+  /* colunas empilhadas: cols = [{label, segs:[{v,k,c,name}]}] */
+  function stackChart(box,cols,o){
+    const totals = cols.map(c => c.segs.reduce((s,z) => s+(z.v>0?z.v:0),0));
+    const F = frame([0],o,Math.max(0,...totals)); let s = F.s; const tips = [];
+    const gw = F.pw/cols.length, bw = 24;
+    cols.forEach((c,ci) => {
+      const x = F.L+ci*gw+(gw-bw)/2, segs = c.segs.filter(z => z.v>0); let cum = 0;
+      const idx = tips.length;
+      const rows = segs.map(z => ({c:z.c,v:brl(z.v),n:z.name})); rows.push({c:'ink',v:brl(totals[ci]),n:'Total'});
+      tips.push({title:c.label,rows});
+      s += `<g class="mk" data-i="${idx}" tabindex="0" aria-label="${esc(c.label+': total '+brl(totals[ci]))}">`;
+      segs.forEach((z,k) => {
+        const yTop = F.y(cum+z.v), yBot = F.y(cum); let h = yBot-yTop-(k>0?2:0); if(h<1) h = Math.max(yBot-yTop,.5);
+        s += k===segs.length-1 ? `<path class="bar ${z.k}" d="${topRound(x,yTop,bw,h,4)}"/>` : `<rect class="bar ${z.k}" x="${x}" y="${yTop}" width="${bw}" height="${h}"/>`;
+        cum += z.v;
+      });
+      s += `<rect class="hit" x="${F.L+ci*gw}" y="${F.T}" width="${gw}" height="${F.ph}"/></g>`;
+      s += `<text x="${x+bw/2}" y="${F.y(totals[ci])-5}" text-anchor="middle" class="val">${o.val(totals[ci])}</text>`;
+      s += `<text x="${F.L+ci*gw+gw/2}" y="${F.H-12}" text-anchor="middle" class="cat">${esc(c.label)}</text>`;
+    });
+    box.innerHTML = s+'</svg>'; wireTips(box,tips);
+  }
+  function legendOf(el,items){
+    el.innerHTML = '';
+    items.forEach(it => { const sp = document.createElement('span'); const i = document.createElement('i'); i.className = it.k;
+      sp.appendChild(i); sp.appendChild(document.createTextNode(it.t)); el.appendChild(sp); });
+  }
+
+  /* ---------- cálculo e renderização ---------- */
+  function calc(){
+    const S = simulate(), T = S.T;
+    const hasDiv = S.as.some(x => x.dps>0);
+
+    // campos derivados (dividendo ↔ yield)
+    document.querySelectorAll('.asset').forEach((el,i) => {
+      const a = state.assets[i], x = S.as[i]; if(!x) return;
+      el.querySelector('b').textContent = assetLabel(i)==='Ativo '+(i+1) ? 'Ativo '+(i+1) : 'Ativo '+(i+1)+' · '+assetLabel(i);
+      const lnk = el.querySelector('.qlink'), tk = (a.tk||'').trim().toUpperCase();
+      lnk.href = tk ? 'https://www.google.com/finance/quote/'+encodeURIComponent(tk)+':BVMF' : 'https://www.google.com/finance/';
+      const inp = {div:el.querySelector('[data-k="div"]'), ym:el.querySelector('[data-k="ym"]'), ya:el.querySelector('[data-k="ya"]')};
+      const m = (x.dps>0 && x.quote>0) ? x.dps*x.fr/12/x.quote : NaN;
+      const vals = {div: x.dps>0 ? fmtIn(x.dps,4) : '', ym: isFinite(m) ? fmtIn(m*100,2) : '', ya: isFinite(m) ? fmtIn(yAnual(m)*100,2) : ''};
+      Object.keys(inp).forEach(k => {
+        inp[k].classList.toggle('derived', a.src!==k);
+        if(k!==a.src && document.activeElement!==inp[k]) inp[k].value = vals[k];
+      });
     });
 
-    const pmF = q>0 ? tot/q : 0;
-    $('rPm').textContent = brl(pmF);
-    const d = $('rPmDelta');
-    if(pm0>0 && aporte>0){
-      const dv = pmF-pm0, dp = dv/pm0*100;
-      d.textContent = (dv<=0?'▼ ':'▲ ') + brl(Math.abs(dv)) + ' (' + pct(dp) + ') vs. preço médio atual';
-      d.className = 'delta ' + (dv<0?'pos':dv>0?'neg':'');
-    } else { d.textContent = aporte>0 ? '' : 'Adicione compras para ver a variação'; d.className='delta'; }
-    $('rQtd').textContent = num(q);
-    $('rTot').textContent = brl(tot);
-    $('rAporte').textContent = brl(aporte);
-    if(cot>0 && q>0){
-      const mkt = cot*q, res = mkt-tot;
-      $('rMkt').textContent = brl(mkt);
-      $('rRes').textContent = (res>0?'+':'') + brl(res); $('rRes').className = res>=0?'pos':'neg';
-      $('rResPct').textContent = tot>0 ? pct(res/tot*100) : '—'; $('rResPct').className = res>=0?'pos':'neg';
-    } else { ['rMkt','rRes','rResPct'].forEach(id => { $(id).textContent='—'; $(id).className=''; }); }
+    // linhas de operação
+    S.rows.forEach((r,i) => {
+      const el = $('oa'+i); if(!el) return;
+      if(!r){ el.innerHTML = ''; return; }
+      if(r.empty){ el.innerHTML = '<span class="warn">Não há cotas desse ativo para vender.</span>'; return; }
+      const cart = hasDiv ? `<span>Carteira: <b>${brl(r.ano/12)}</b>/mês</span>` : '';
+      if(r.kind==='c'){
+        const d = r.pm-r.prev, c = d<0?'pos':d>0?'neg':'';
+        el.innerHTML = `<span>PM: <b>${brl(r.pm)}</b></span>`+
+          (r.prevQ>0 && r.prev>0 ? `<span class="${c}">${d<=0?'▼ ':'▲ '}${brl(Math.abs(d))}</span>` : '')+
+          `<span>Qtd: <b>${num(r.q)}</b></span><span>Aporte: <b>${brl(r.value)}</b></span>`+cart;
+      } else {
+        el.innerHTML = `<span>PM: <b>${brl(r.pm)}</b> (não muda)</span><span>Qtd: <b>${num(r.q)}</b></span>`+
+          (r.nopm ? `<span class="warn">Informe o preço médio do ativo para calcular o resultado da venda.</span>` : `<span class="${cls(r.res)}">Resultado: <b>${sbrl(r.res)}</b>${r.resPct!=null?' ('+spct(r.resPct)+')':''}</span>`)+cart+
+          (r.limited ? `<span class="warn">Só há ${num(r.avail)} cotas: venda limitada.</span>` : '');
+      }
+    });
 
-    // meta
+    // resultado da estratégia
+    $('rRenda').textContent = brl(T.anoF/12);
+    const dl = $('rRendaDelta'), d0 = T.ano0/12, dF = T.anoF/12;
+    if(S.steps.length>1 && hasDiv){
+      const dv = dF-d0, pc = d0>0 ? dv/d0*100 : null;
+      dl.textContent = (dv>=0?'▲ ':'▼ ')+brl(Math.abs(dv))+(pc!=null?' ('+spct(pc)+')':'')+' vs. renda atual de '+brl(d0);
+      dl.className = 'delta '+cls(dv);
+    } else { dl.textContent = hasDiv ? 'Adicione operações para ver a variação' : 'Informe o dividendo ou o yield dos ativos'; dl.className = 'delta'; }
+    const saldo = T.vendas-T.compras;
+    $('rVendas').textContent = brl(T.vendas);
+    $('rCompras').textContent = brl(T.compras);
+    $('rSaldo').textContent = sbrl(saldo); $('rSaldo').className = cls(saldo);
+    $('rReal').textContent = T.vendas>0 ? sbrl(T.real) : '—'; $('rReal').className = T.vendas>0 ? cls(T.real) : '';
+    const Y0 = portY(T.ano0,T.custo0), YF = portY(T.anoF,T.custoF);
+    const ar = (a,b) => (isFinite(a)?num(a,2)+'%':'—')+' → '+(isFinite(b)?num(b,2)+'%':'—');
+    $('rYm').textContent = hasDiv ? ar(Y0.m,YF.m) : '—';
+    $('rYa').textContent = hasDiv ? ar(Y0.a,YF.a) : '—';
+    $('rAno').textContent = hasDiv ? num(T.ano0,2)+' → '+num(T.anoF,2) : '—';
+    $('rCusto').textContent = num(T.custo0,2)+' → '+num(T.custoF,2);
+    renderFarol(S,hasDiv,saldo,Y0.a,YF.a);
+    $('rNote').innerHTML = S.steps.length<=1 ? 'Adicione compras e vendas para simular a estratégia.' :
+      saldo>0.004 ? `Sobram <b>${brl(saldo)}</b> em caixa depois das operações.` :
+      saldo<-0.004 ? `Faltam <b>${brl(-saldo)}</b>: seria preciso aportar esse valor.` : 'As vendas cobrem as compras, sem sobra.';
+
+    renderAssetTable(S,hasDiv);
+    renderCharts(S,hasDiv);
+    renderMeta(S);
+  }
+
+  function renderFarol(S,hasDiv,saldo,yoc0,yocF){
+    const T = S.T, panel = $('farolPanel'), f = $('farol'), list = $('fCrit');
+    const set = (lvl,title,msg) => { panel.dataset.lvl = lvl; f.dataset.lvl = lvl; $('fTitle').textContent = title; $('fMsg').textContent = msg; };
+    list.innerHTML = '';
+    if(!hasDiv){ set('n','Sem avaliação','Informe o dividendo por cota ou o yield dos ativos.'); return; }
+    if(S.steps.length<=1){ set('n','Sem simulação','Adicione compras e vendas para avaliar a estratégia.'); return; }
+    let tol = parse(state.tol); if(!(tol>=0)) tol = 5;
+    const d0 = T.ano0/12, dF = T.anoF/12, dp = d0>0 ? (dF/d0-1)*100 : (dF>0 ? 100 : 0);
+    const items = [];
+    items.push({l: dp>=-0.005 ? 'g' : dp>=-tol ? 'y' : 'r',
+      t: `Renda mensal: ${brl(d0)} → ${brl(dF)}`+(d0>0?` (${spct(dp)})`:''), s:'renda'});
+    items.push({l: saldo>=-0.005 ? 'g' : 'y',
+      t: saldo>0.005 ? `Caixa: sobram ${brl(saldo)}` : saldo<-0.005 ? `Caixa: faltam ${brl(-saldo)}, é preciso aportar` : 'Caixa: as vendas cobrem as compras', s:'caixa'});
+    if(isFinite(yoc0) && isFinite(yocF)){
+      const dy = yocF-yoc0;
+      items.push({l: dy>=-0.05 ? 'g' : dy>=-0.5 ? 'y' : 'r',
+        t: `Yield anual sobre o custo: ${num(yoc0,2)}% → ${num(yocF,2)}% (${sn(dy)} p.p.)`, s:'yield'});
+    }
+    const ico = {g:'✓',y:'!',r:'✕'}, nome = {g:'ok',y:'atenção',r:'problema'};
+    items.forEach(it => {
+      const li = document.createElement('li'); li.className = it.l;
+      const ic = document.createElement('span'); ic.className = 'ico'; ic.textContent = ico[it.l]; ic.setAttribute('aria-label',nome[it.l]);
+      const tx = document.createElement('span'); tx.textContent = it.t;
+      li.append(ic,tx); list.appendChild(li);
+    });
+    const has = l => items.some(it => it.l===l);
+    if(has('r')) set('r','Não viável','Piora relevante: '+items.filter(it=>it.l==='r').map(it=>it.t.split(':')[0].toLowerCase()).join(' e ')+'.');
+    else if(has('y')) set('y','Atenção','Vale revisar: '+items.filter(it=>it.l==='y').map(it=>it.t.split(':')[0].toLowerCase()).join(' e ')+'.');
+    else set('g','Viável','A renda não cai, não falta caixa e o yield sobre o custo não piora.');
+  }
+
+  function renderAssetTable(S,hasDiv){
+    let h = '';
+    const pc = m => isFinite(m) ? num(m*100,2)+'%' : '—';
+    S.as.forEach(x => {
+      const a0 = x.dps*x.fr*x.q0/12, aF = x.dps*x.fr*x.q/12, dv = aF-a0;
+      const m = x.q>0 && x.pm>0 && x.dps>0 ? x.dps*x.fr/12/x.pm : NaN;
+      h += `<div class="acard"><div class="top"><b><i class="sw" style="background:var(--a${x.i+1})"></i>${esc(x.tk)}</b>`+
+        `<span class="${hasDiv?cls(dv):''}">${hasDiv?sn(dv)+' /mês':'—'}</span></div>`+
+        `<dl><div><dt>Qtd.</dt><dd>${num(x.q0)} → ${num(x.q)}</dd></div>`+
+        `<div><dt>PM (R$)</dt><dd>${x.q>0?num(x.pm,2):'—'}</dd></div>`+
+        `<div><dt>Yield mensal s/ custo</dt><dd>${pc(m)}</dd></div>`+
+        `<div><dt>Yield anual equivalente</dt><dd>${isFinite(m)?pc(yAnual(m)):'—'}</dd></div>`+
+        `<div class="wide"><dt>Renda mensal (R$)</dt><dd>${hasDiv?num(a0,2)+' → '+num(aF,2):'—'}</dd></div></dl></div>`;
+    });
+    const T = S.T, d = (T.anoF-T.ano0)/12, YF = portY(T.anoF,T.custoF);
+    h += `<div class="acard tot"><div class="top"><b>Carteira</b><span class="${hasDiv?cls(d):''}">${hasDiv?sn(d)+' /mês':'—'}</span></div>`+
+      `<dl><div><dt>Yield mensal s/ custo</dt><dd>${hasDiv&&isFinite(YF.m)?num(YF.m,2)+'%':'—'}</dd></div>`+
+      `<div><dt>Yield anual equivalente</dt><dd>${hasDiv&&isFinite(YF.a)?num(YF.a,2)+'%':'—'}</dd></div>`+
+      `<div class="wide"><dt>Renda mensal (R$)</dt><dd>${hasDiv?num(T.ano0/12,2)+' → '+num(T.anoF/12,2):'—'}</dd></div></dl></div>`;
+    $('assetTable').innerHTML = h;
+  }
+
+  function renderCharts(S,hasDiv){
+    const ids = ['ch1','ch2','ch3','ch4'];
+    if(!hasDiv){
+      ids.forEach(id => { $(id).innerHTML = '<p class="empty">Informe o dividendo por cota ou o yield de ao menos um ativo para ver este gráfico.</p>'; });
+      $('tv').innerHTML = ''; $('lg1').innerHTML = ''; $('lg2').innerHTML = ''; return;
+    }
+    const T = S.T, withLeg = S.as.filter(x => x.dps>0 && (x.q0>0 || x.q>0));
+    const items = withLeg.map(x => ({k:'k'+(x.i+1),t:x.tk}));
+    legendOf($('lg1'),items); legendOf($('lg2'),items);
+    const money = v => num(v,Math.abs(v)>=100?0:2);
+    const mes = (x,q) => x.dps*x.fr*q/12;
+    stackChart($('ch1'),[
+      {label:'Atual',segs:S.as.map(x => ({v:mes(x,x.q0),k:'f'+(x.i+1),c:'a'+(x.i+1),name:x.tk}))},
+      {label:'Após a simulação',segs:S.as.map(x => ({v:mes(x,x.q),k:'f'+(x.i+1),c:'a'+(x.i+1),name:x.tk}))}],
+      {label:'Renda mensal da carteira por ativo: atual '+brl(T.ano0/12)+', após a simulação '+brl(T.anoF/12),
+       tick:(t,d)=>num(t,d), val:money});
+    colChart($('ch2'),withLeg.map(x => ({label:x.tk,bars:[{v:mes(x,x.q)-mes(x,x.q0),k:'f'+(x.i+1),c:'a'+(x.i+1),name:'Variação da renda mensal'}]})),
+      {label:'Variação da renda mensal por ativo, em reais',
+       tick:(t,d)=>sn(t,d), val:v=>sn(v,Math.abs(v)>=100?0:2), tip:v=>sbrl(v)});
+    const Y0 = portY(T.ano0,T.custo0), YF = portY(T.anoF,T.custoF);
+    colChart($('ch3'),[
+      {label:'Yield anual equivalente',bars:[{v:Y0.a,k:'fb',c:'c-before',name:'Atual'},{v:YF.a,k:'fa',c:'accent',name:'Após a simulação'}]}],
+      {label:'Yield anual equivalente da carteira sobre o custo, em porcentagem: atual '+(isFinite(Y0.a)?num(Y0.a,2):'sem valor')+', após a simulação '+(isFinite(YF.a)?num(YF.a,2):'sem valor'),
+       tick:(t,d)=>num(t,d)+'%', val:v=>num(v,1)+'%', tip:v=>num(v,2)+'%', gap:16});
+    const ya = (x,q,pm) => (q>0 && pm>0 && x.dps>0) ? yAnual(x.dps*x.fr/12/pm)*100 : NaN;
+    const many = withLeg.length>3;
+    colChart($('ch4'),withLeg.map(x => ({label:x.tk,bars:[
+        {v:ya(x,x.q0,x.pm0),k:'fb',c:'c-before',name:'Atual'},
+        {v:ya(x,x.q,x.pm),k:'fa',c:'accent',name:'Após a simulação'}]})),
+      {label:'Yield anual equivalente de cada ativo sobre o custo, antes e depois da simulação',
+       tick:(t,d)=>num(t,d)+'%', val:v=>num(v,1)+'%', tip:v=>num(v,2)+'%', gap:many?3:16, small:many});
+    const pc = m => isFinite(m) ? num(m*100,2)+'%' : '—';
+    let h = '<table class="tbl" style="min-width:520px"><thead><tr><th>Ativo</th><th>Renda mensal (R$)</th><th>Yield mensal</th><th>Yield anual equiv.</th></tr></thead><tbody>';
+    S.as.forEach(x => {
+      const m0 = x.q0>0 && x.pm0>0 && x.dps>0 ? x.dps*x.fr/12/x.pm0 : NaN, mF = x.q>0 && x.pm>0 && x.dps>0 ? x.dps*x.fr/12/x.pm : NaN;
+      h += `<tr><td>${esc(x.tk)}</td><td>${num(x.dps*x.fr*x.q0/12,2)} → ${num(x.dps*x.fr*x.q/12,2)}</td><td>${pc(m0)} → ${pc(mF)}</td>`+
+        `<td>${isFinite(m0)?pc(yAnual(m0)):'—'} → ${isFinite(mF)?pc(yAnual(mF)):'—'}</td></tr>`;
+    });
+    h += `<tr class="tot"><td>Carteira</td><td>${num(T.ano0/12,2)} → ${num(T.anoF/12,2)}</td>`+
+      `<td>${isFinite(Y0.m)?num(Y0.m,2)+'%':'—'} → ${isFinite(YF.m)?num(YF.m,2)+'%':'—'}</td>`+
+      `<td>${isFinite(Y0.a)?num(Y0.a,2)+'%':'—'} → ${isFinite(YF.a)?num(YF.a,2)+'%':'—'}</td></tr>`;
+    $('tv').innerHTML = h+'</tbody></table>';
+  }
+
+  function renderMeta(S){
+    const x = S.as[state.metaA] || S.as[0];
+    const pm0 = x.pm0, q0 = x.q0, cot = x.opPrice;
     const T = parse(state.metaPm), c = parse(state.metaPreco) || cot, out = $('metaOut');
-    $('metaPreco').placeholder = cot>0 ? num(cot,2) + ' (cotação)' : '0,00';
+    $('metaPreco').placeholder = cot>0 ? num(cot,2)+' (preço da operação)' : '0,00';
     if(!(T>0)){ out.textContent = 'Preencha o preço médio desejado.'; return; }
-    if(!(c>0)){ out.textContent = 'Informe o preço de compra ou a cotação atual.'; return; }
-    if(!(pm0>0 && q0>0)){ out.textContent = 'Preencha o preço médio atual e a quantidade.'; return; }
+    if(!(c>0)){ out.textContent = 'Informe o preço de compra.'; return; }
+    if(!(pm0>0 && q0>0)){ out.textContent = 'Esse ativo precisa ter preço médio e quantidade atuais.'; return; }
     if(Math.abs(T-pm0)<1e-9){ out.textContent = 'Você já está nesse preço médio.'; return; }
     const ok = (c<T && T<pm0) || (c>T && T>pm0);
     if(!ok){ out.textContent = `Com compras a ${brl(c)} não dá para chegar a ${brl(T)}: o preço desejado precisa ficar entre o preço de compra e o preço médio atual.`; return; }
     const n = Math.ceil(q0*(pm0-T)/(T-c) - 1e-9);
     const pmRes = (pm0*q0 + c*n)/(q0+n);
-    out.innerHTML = `Compre <b>${num(n)}</b> cotas a <b>${brl(c)}</b> (aporte de <b>${brl(c*n)}</b>). O preço médio fica em <b>${brl(pmRes)}</b>.`;
+    out.innerHTML = `Compre <b>${num(n)}</b> cotas de ${esc(x.tk)} a <b>${brl(c)}</b> (aporte de <b>${brl(c*n)}</b>). O preço médio fica em <b>${brl(pmRes)}</b>.`;
   }
 
-  $('add').addEventListener('click', () => { if(state.buys.length<MAX){ state.buys.push({p:'',q:''}); renderBuys(); calc(); save(); $('bp'+(state.buys.length-1)).focus(); } });
-  $('fillQuote').addEventListener('click', () => { const c = state.cot; if(!parse(c)) { $('cot').focus(); return; }
-    state.buys.forEach(b => { if(!String(b.p).trim()) b.p = c; }); renderBuys(); calc(); save(); });
+  /* ---------- botões e campos gerais ---------- */
+  $('metaPm').value = state.metaPm || ''; $('metaPreco').value = state.metaPreco || '';
+  $('tol').value = state.tol==null ? '5' : state.tol;
+  $('tol').addEventListener('input', e => { state.tol = e.target.value; calc(); save(); });
+  $('metaPm').addEventListener('input', e => { state.metaPm = e.target.value; calc(); save(); });
+  $('metaPreco').addEventListener('input', e => { state.metaPreco = e.target.value; calc(); save(); });
+  $('metaA').addEventListener('change', e => { state.metaA = +e.target.value; calc(); save(); });
+  $('addAsset').addEventListener('click', () => { if(state.assets.length<MAXA){ state.assets.push(newAsset()); renderAssets(); refreshSelects(); calc(); save();
+    const el = document.querySelectorAll('.asset')[state.assets.length-1]; el.querySelector('[data-k="tk"]').focus(); } });
+  $('addOp').addEventListener('click', () => { if(state.ops.length<MAXO){ state.ops.push(newOp(0)); renderOps(); calc(); save(); $('op'+(state.ops.length-1)+'p').focus(); } });
   let armed = false;
   $('clear').addEventListener('click', e => {
     if(!armed){ armed = true; e.target.textContent = 'Toque de novo para limpar'; setTimeout(()=>{armed=false; e.target.textContent='Limpar tudo';},3000); return; }
     armed = false; e.target.textContent = 'Limpar tudo';
-    state = {ticker:'',pm:'',qtd:'',cot:'',metaPm:'',metaPreco:'',buys:[{p:'',q:''},{p:'',q:''},{p:'',q:''},{p:'',q:''},{p:'',q:''}]};
-    fields.forEach(f => $(f).value=''); renderBuys(); calc(); save();
+    state = {assets:[newAsset()],ops:[0,1,2,3,4].map(()=>newOp(0)),metaA:0,metaPm:'',metaPreco:'',tol:'5'};
+    $('tol').value = '5';
+    $('metaPm').value = ''; $('metaPreco').value = '';
+    renderAssets(); renderOps(); fillSelect($('metaA'),0); calc(); save();
   });
 
-  renderBuys(); calc();
+  renderAssets(); renderOps(); fillSelect($('metaA'),state.metaA); calc();
 })();
 </script>
 
